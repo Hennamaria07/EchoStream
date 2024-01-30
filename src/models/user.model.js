@@ -60,6 +60,7 @@ const userSchema = new mongoose.Schema(
 userSchema.methods.isPasswordCorrect = async function (password) {
    return await bcrypt.compare(password, this.password)
 }
+//custom method for generating access token
 userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
@@ -74,6 +75,7 @@ userSchema.methods.generateAccessToken = function () {
         }
     )
 }
+//custom method for generating refresh token
 userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {
