@@ -10,10 +10,7 @@ const generateAcceesAndRefreshTokens = async (userId) => {
         await user.save({validateBeforeSave: true});
         return {accessToken, refreshToken}
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Oops! something went wrong while generating access and refresh tokens"
-        })
+        throw new Error("Oops! something went wrong while generating access and refresh tokens");
     }
 }
 
@@ -75,7 +72,7 @@ export const registerUser = async (req, res) => {
             avatar: avatar.url,
             coverImg: coverImg?.url || "",
         });
-        console.log(user);
+        // console.log(user);
         // remove password and refresh token field from response
         const createdUser = await User.findById(user._id).select(
             "-password -refreshToken"
@@ -106,7 +103,7 @@ export const loginUser = async (req, res) => {
     const { username, email, password } = req.body;
     try {
         // validated
-        if (!username || !email) {
+        if (!(username || email)) {
             return res.status(400).json({
                 success: false,
                 message: "username or email is required"
@@ -150,33 +147,41 @@ export const loginUser = async (req, res) => {
             user: loggedUser, accessToken, refreshToken
         })
     } catch (error) {
-
-    }
-}
-
-export const logoutUser = async(req, res) => {
-    try {
-       await User.findByIdAndUpdate(
-            req.user._id,
-            {
-                $set: {refreshToken: undefined}
-            },
-            {
-                new: true
-            }
-        )
-        const options = {
-            httpOnly: true, 
-            secure: true
-        }
-        return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json({
-            success: true,
-            message: "user logged our successfully!"
-        })
-    } catch (error) {
-        res.status(500).json({
+         res.status(500).json({
             success: false,
             message: error.message
         })
     }
 }
+
+export const logoutUser = async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    refreshToken: undefined
+                }
+            },
+            {
+                new: true
+            }
+        );
+        const options = {
+            httpOnly: true,
+            secure: true
+        };
+        res.status(200)
+            .clearCookie("accessToken", options)
+            .clearCookie("refreshToken", options)
+            .json({
+                success: true,
+                message: "User logged out successfully!"
+            });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

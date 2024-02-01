@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 export const verifyToken = async (req, res, next) => {
 try {
     const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    // console.log(token);
     if(!token){
         return res.status(401).json({
             success: false,
@@ -18,7 +19,8 @@ try {
             message:"invalid Access Token",
         })
     }
-    req.user = user
+    req.user = user;
+    next();
 } catch (error) {
     return res.status(401).json({
         success: false,
