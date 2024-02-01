@@ -5,7 +5,7 @@ export const registerUser = async (req, res) => {
     // get the data from the frontend
     const {fullName, email, username, password} = req.body;
     try {
-        console.log(fullName , email , username,  password);
+        // console.log(fullName , email , username,  password);
         // validation
         if([fullName, email, username, password].some((fields) => fields?.trim() === "")) {
             return res.status(400).json({
@@ -25,7 +25,11 @@ export const registerUser = async (req, res) => {
         }
         // taking the localpath
         const avatarLocalPath = req.files?.avatar[0]?.path;
-        const coverImgLocalPath = req.files?.coverImg[0]?.path;
+        // const coverImgLocalPath = req.files?.coverImg[0]?.path;
+        let coverImgLocalPath;
+        if(req.files && Array.isArray(req.files.coverImg) && req.files.coverImg.length > 0) {
+            coverImgLocalPath = req.files.coverImg[0].path;
+        }
         console.log(avatarLocalPath, coverImgLocalPath);
 
         // check for images
@@ -69,7 +73,8 @@ export const registerUser = async (req, res) => {
         }
         return res.status(201).json({
             success: true,
-            message: "user registered successfully"
+            message: "user registered successfully",
+            createdUser
         })
 }
     catch (error) {
