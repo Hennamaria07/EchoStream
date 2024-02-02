@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 const generateAcceesAndRefreshTokens = async (userId) => {
     try {
@@ -185,3 +186,48 @@ export const logoutUser = async (req, res) => {
         });
     }
 };
+
+export const refreshAccessToken = async (req, res) => {
+    try {
+        const incomingrefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+        if (!incomingrefreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "unauthorized request"
+            });
+        }
+        // verifing
+        const decodedToken = jwt.verify(incomingrefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const user = await User.findById(decodedToken?._id);
+        if(!user){
+            return res.status(401).json({
+                success: false,
+                message:"invalid Refresh Token",
+            })
+        }
+        if(incomingrefreshToken !== user?.refreshToken){
+            return res.status(401).json({
+                success: false,
+                message:"Refresh token is expired or used",
+            })
+        }
+        const {accessToken, newRefreshToken} = await generateAcceesAndRefreshTokens(user._id);
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+    
+        return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", newRefreshToken, options)
+        .json({
+            success: true,
+            accessToken,
+            refreshToken: newRefreshToken,
+            message: "Access token refreshed successfully!"
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
