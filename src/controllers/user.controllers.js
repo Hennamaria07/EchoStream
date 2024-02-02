@@ -281,7 +281,7 @@ export const currentUser = async (req, res) => {
 }
 
 export const updateAccount = async (req, res) => {
-try {
+    try {
         const { fullName, email } = req.body;
         if (!fullName || !email) {
             return res.status(400).json({
@@ -303,13 +303,79 @@ try {
         return res.status(201).json({
             success: true,
             user,
-            message: "Account details successfully!"
+            message: "Account details updated successfully!"
         });
-} catch (error) {
-    res.status(500).json({
-        success: false,
-        message: error.message
-    });
-}
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
 }
 
+export const updateAvatar = async (req, res) => {
+    try {
+        const avatarLocalPath = req.file?.path;
+        if (!avatarLocalPath) {
+            return res.status(400).json({
+                success: false,
+                message: "Avatar is required"
+            });
+        }
+        const avatar = await uploadOnCloudinary(avatarLocalPath);
+        if (!avatar) {
+            return res.status(400).json({
+                success: false,
+                message: "Error while uploading on cloudinary"
+            })
+        }
+        const user = await User.findByIdAndUpdate(req.user?._id,
+            {
+                $set: { avatar: avatar.url }
+            },
+            { new: true }).select("-password -refreshToken");
+        return res.status(201).json({
+            success: true,
+            user,
+            message: "Avatar updated successfully!"
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+export const updateCoverImg = async (req, res) => {
+    try {
+        const coverImgLocalPath = req.file?.path;
+        if (!coverImgLocalPath) {
+            return res.status(400).json({
+                success: false,
+                message: "Cover image is required"
+            });
+        }
+        const coverImg = await uploadOnCloudinary(coverImgLocalPath);
+        if (!coverImg) {
+            return res.status(400).json({
+                success: false,
+                message: "Error while uploading on cloudinary"
+            })
+        }
+        const user = await User.findByIdAndUpdate(req.user?._id,
+            {
+                $set: { coverImg: coverImg.url }
+            },
+            { new: true }).select("-password -refreshToken");
+        return res.status(201).json({
+            success: true,
+            user,
+            message: "Cover image updated successfully!"
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
