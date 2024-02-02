@@ -8,8 +8,8 @@ const generateAcceesAndRefreshTokens = async (userId) => {
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
         user.refreshToken = refreshToken;
-        await user.save({validateBeforeSave: true});
-        return {accessToken, refreshToken}
+        await user.save({ validateBeforeSave: true });
+        return { accessToken, refreshToken }
     } catch (error) {
         throw new Error("Oops! something went wrong while generating access and refresh tokens");
     }
@@ -129,26 +129,26 @@ export const loginUser = async (req, res) => {
             });
         }
         // access and refresh token
-        const {refreshToken, accessToken} = await generateAcceesAndRefreshTokens(user._id);
+        const { refreshToken, accessToken } = await generateAcceesAndRefreshTokens(user._id);
         const loggedUser = await User.findById(user._id).select("-password -refreshToken");
         console.log(loggedUser);
 
         // send cookie
         const options = {
             //only server can modify the cookies 
-            httpOnly: true, 
+            httpOnly: true,
             secure: true
         }
         return res.status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
-        .json({
-            success: true,
-            message: "User loggedin successfully!",
-            user: loggedUser, accessToken, refreshToken
-        })
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json({
+                success: true,
+                message: "User loggedin successfully!",
+                user: loggedUser, accessToken, refreshToken
+            })
     } catch (error) {
-         res.status(500).json({
+        res.status(500).json({
             success: false,
             message: error.message
         })
@@ -200,31 +200,31 @@ export const refreshAccessToken = async (req, res) => {
         // verifing
         const decodedToken = jwt.verify(incomingrefreshToken, process.env.REFRESH_TOKEN_SECRET);
         const user = await User.findById(decodedToken?._id);
-        if(!user){
+        if (!user) {
             return res.status(401).json({
                 success: false,
-                message:"invalid Refresh Token",
+                message: "invalid Refresh Token",
             })
         }
-        if(incomingrefreshToken !== user?.refreshToken){
+        if (incomingrefreshToken !== user?.refreshToken) {
             return res.status(401).json({
                 success: false,
-                message:"Refresh token is expired or used",
+                message: "Refresh token is expired or used",
             })
         }
-        const {accessToken, newRefreshToken} = await generateAcceesAndRefreshTokens(user._id);
+        const { accessToken, newRefreshToken } = await generateAcceesAndRefreshTokens(user._id);
         const options = {
             httpOnly: true,
             secure: true
         }
-    
+
         return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", newRefreshToken, options)
-        .json({
-            success: true,
-            accessToken,
-            refreshToken: newRefreshToken,
-            message: "Access token refreshed successfully!"
-        })
+            .json({
+                success: true,
+                accessToken,
+                refreshToken: newRefreshToken,
+                message: "Access token refreshed successfully!"
+            })
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -236,23 +236,23 @@ export const refreshAccessToken = async (req, res) => {
 // change current password //update
 export const changeCurrentPassword = async (req, res) => {
     try {
-        const {password, newPassword} = req.body;
+        const { password, newPassword } = req.body;
         const user = await User.findById(req.user._id);
-        if(!user){
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "unauthorized request"
             });
         }
         const correctPassword = await user.isPasswordCorrect(password);
-        if(!correctPassword){
+        if (!correctPassword) {
             return res.status(400).json({
                 success: false,
                 message: "invalid password"
             });
         }
         user.password = newPassword;
-        await user.save({ validateBeforeSave: false})
+        await user.save({ validateBeforeSave: false })
         return res.status(200).json({
             success: true,
             message: "Password changed successfully!"
@@ -268,7 +268,7 @@ export const changeCurrentPassword = async (req, res) => {
 export const currentUser = async (req, res) => {
     try {
         res.status(200).json({
-            success: success,
+            success: true,
             user: req.user,
             message: "current user fetched successfully!"
         });
@@ -279,3 +279,37 @@ export const currentUser = async (req, res) => {
         });
     }
 }
+
+export const updateAccount = async (req, res) => {
+try {
+        const { fullName, email } = req.body;
+        if (!fullName || !email) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            });
+        }
+        const user = await User.findByIdAndUpdate(req.user?._id,
+            {
+                $set: {
+                    fullName,
+                    email
+                }
+            },
+            {
+                new: true
+            }
+        ).select("-password -refreshToken");
+        return res.status(201).json({
+            success: true,
+            user,
+            message: "Account details successfully!"
+        });
+} catch (error) {
+    res.status(500).json({
+        success: false,
+        message: error.message
+    });
+}
+}
+
