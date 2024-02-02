@@ -232,3 +232,35 @@ export const refreshAccessToken = async (req, res) => {
         });
     }
 }
+
+// change current password //update
+export const changeCurrentPassword = async (req, res) => {
+    try {
+        const {password, newPassword} = req.body;
+        const user = await User.findById(req.user._id);
+        if(!user){
+            return res.status(401).json({
+                success: false,
+                message: "unauthorized request"
+            });
+        }
+        const correctPassword = await user.isPasswordCorrect(password);
+        if(!correctPassword){
+            return res.status(400).json({
+                success: false,
+                message: "invalid password"
+            });
+        }
+        user.password = newPassword;
+        await user.save({ validateBeforeSave: false})
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully!"
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
