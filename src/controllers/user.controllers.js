@@ -282,7 +282,7 @@ export const currentUser = async (req, res) => {
 
 export const updateAccount = async (req, res) => {
     try {
-        const { fullName, email } = req.body;
+        console.log(fullName, email);
         if (!fullName || !email) {
             return res.status(400).json({
                 success: false,
@@ -355,7 +355,9 @@ export const updateCoverImg = async (req, res) => {
                 message: "Cover image is required"
             });
         }
+        console.log(coverImgLocalPath);
         const coverImg = await uploadOnCloudinary(coverImgLocalPath);
+        console.log(coverImg);
         if (!coverImg) {
             return res.status(400).json({
                 success: false,
