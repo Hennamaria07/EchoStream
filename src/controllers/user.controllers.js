@@ -187,6 +187,7 @@ export const logoutUser = async (req, res) => {
     }
 };
 
+// refresh and access token 
 export const refreshAccessToken = async (req, res) => {
     try {
         const incomingrefreshToken = req.cookies.refreshToken || req.body.refreshToken;
