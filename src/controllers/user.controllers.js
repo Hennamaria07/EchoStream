@@ -264,3 +264,18 @@ export const changeCurrentPassword = async (req, res) => {
         });
     }
 }
+
+export const currentUser = async (req, res) => {
+    try {
+        res.status(200).json({
+            success: success,
+            user: req.user,
+            message: "current user fetched successfully!"
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
