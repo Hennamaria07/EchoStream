@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import removeFromCloudinary from "../utils/removeCloudinary.js";
 
 const generateAcceesAndRefreshTokens = async (userId) => {
     try {
@@ -13,6 +14,23 @@ const generateAcceesAndRefreshTokens = async (userId) => {
     } catch (error) {
         throw new Error("Oops! something went wrong while generating access and refresh tokens");
     }
+}
+function extractPublicIdFromUrl(url) {
+    // Remove the schema (http:// or https://) and split the URL by "/"
+    const parts = url.replace(/^https?:\/\//, '').split('/');
+
+    // Find the index of "upload" to get to the version part
+    const uploadIndex = parts.indexOf('upload');
+
+    // The public ID starts right after the version, which is two indices after "upload"
+    // We join all parts after the version to include folders and the actual file name
+    let publicId = parts.slice(uploadIndex + 2).join('/');
+
+    // If the public ID contains a file extension, remove it
+    // This step is optional and depends on whether you need the extension or not
+    publicId = publicId.replace(/\.[^/.]+$/, '');
+
+    return publicId;
 }
 
 export const registerUser = async (req, res) => {
@@ -316,6 +334,7 @@ export const updateAccount = async (req, res) => {
 export const updateAvatar = async (req, res) => {
     try {
         const avatarLocalPath = req.file?.path;
+        const oldAvatar = req.user.avatar;
         if (!avatarLocalPath) {
             return res.status(400).json({
                 success: false,
@@ -323,6 +342,10 @@ export const updateAvatar = async (req, res) => {
             });
         }
         const avatar = await uploadOnCloudinary(avatarLocalPath);
+    //    console.log(avatar);
+    const publicId = extractPublicIdFromUrl(oldAvatar);
+   await removeFromCloudinary(publicId)
+    console.log(publicId);
         if (!avatar) {
             return res.status(400).json({
                 success: false,
@@ -349,21 +372,22 @@ export const updateAvatar = async (req, res) => {
 export const updateCoverImg = async (req, res) => {
     try {
         const coverImgLocalPath = req.file?.path;
+        const oldcoverImg = req.user?.coverImg;
         if (!coverImgLocalPath) {
             return res.status(400).json({
                 success: false,
                 message: "Cover image is required"
             });
         }
-        console.log(coverImgLocalPath);
         const coverImg = await uploadOnCloudinary(coverImgLocalPath);
-        console.log(coverImg);
         if (!coverImg) {
             return res.status(400).json({
                 success: false,
                 message: "Error while uploading on cloudinary"
             })
         }
+        const publicId = extractPublicIdFromUrl(oldcoverImg);
+        await removeFromCloudinary(publicId)
         const user = await User.findByIdAndUpdate(req.user?._id,
             {
                 $set: { coverImg: coverImg.url }
