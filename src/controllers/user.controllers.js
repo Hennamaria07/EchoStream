@@ -18,18 +18,20 @@ const generateAcceesAndRefreshTokens = async (userId) => {
 function extractPublicIdFromUrl(url) {
     // Remove the schema (http:// or https://) and split the URL by "/"
     const parts = url.replace(/^https?:\/\//, '').split('/');
+    console.log(`Remove the schema (http:// or https://) and split the URL by "/" --> ${parts}`);
 
     // Find the index of "upload" to get to the version part
     const uploadIndex = parts.indexOf('upload');
-
+    console.log(`Find the index of "upload" to get to the version part---> ${uploadIndex}`);
     // The public ID starts right after the version, which is two indices after "upload"
     // We join all parts after the version to include folders and the actual file name
     let publicId = parts.slice(uploadIndex + 2).join('/');
-
+    console.log(`public ID starts right after the version, which is two indices after "upload"
+    // We join all parts after the version to include folders and the actual file name --> ${publicId}`);
     // If the public ID contains a file extension, remove it
     // This step is optional and depends on whether you need the extension or not
     publicId = publicId.replace(/\.[^/.]+$/, '');
-
+    console.log(publicId);
     return publicId;
 }
 
@@ -404,4 +406,88 @@ export const updateCoverImg = async (req, res) => {
             message: error.message
         });
     }
+}
+
+export const getUserChannelProfile = async (req, res) => {
+   try {
+     const {username} = req.params;
+     if(!username){
+         return res.status(400).json({
+             success: false,
+             message: "username is missing"
+         });
+     }
+     const chennal = await User.aggregate(
+         [
+             {
+                 $match: {
+                     username
+                 }
+             },
+             {
+                 $lookup: {
+                     from: "subscriptions",
+                     localField: "_id",
+                     foreignField: "chennal",
+                     as: "subscribers"
+                 }
+             },
+             {
+                 $lookup: {
+                     from: "subscriptions",
+                     localField: "_id",
+                     foreignField: "subscriber",
+                     as: "subscribedTo"
+                 }
+             },
+             {
+                 $addFields: {
+                     subscribersCount: {
+                         $size: "$subscribers"
+                     },
+                     chennalSubscribedToCount: {
+                         $size: "$subscribedTo"
+                     },
+                     isSubscribed: {
+                         $cond: {
+                             if: { $in: [req.user?._id, "$subscribers.subscriber"]},
+                             then: true,
+                             else: false
+                         }
+                     }
+                 }
+             },
+             {
+                 $project: {
+                     fullName: 1,
+                     username: 1,
+                     email: 1,
+                     createdAt: 1,
+                     avatar: 1,
+                     coverImg: 1,
+                     subscribersCount: 1,
+                     chennalSubscribedToCount: 1,
+                     isSubscribed: 1
+                 }
+             }
+         ]
+     );
+     console.log(chennal);
+     if(!channel?.length){
+         return res.status(400).json({
+             success: false,
+             message: "chennal does not exits"
+         });
+     }
+     return res.status(200).json({
+         success: true,
+         user: chennal[0],
+         message: "user channel fetched successfully"
+     })
+   } catch (error) {
+    res.status(500).json({
+        success: false,
+        message: error.message
+    });
+   }
 }
